@@ -72,3 +72,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+// DELETE /api/importar?data=YYYY-MM-DD  ← Remove títulos e clientes importados em data específica
+export async function DELETE(req: NextRequest) {
+  try {
+    await connectDB();
+    const { searchParams } = new URL(req.url);
+    const data = searchParams.get("data");
+
+    if (!data) {
+      return NextResponse.json({ error: "Parâmetro 'data' é obrigatório (formato: YYYY-MM-DD)" }, { status: 400 });
+    }
+
+    // Converter data para range (início e fim do dia)
+    const dataInicio = new Date(data);
+    dataInicio.setHours(0, 0, 0, 0);
+    
+    const dataFim = new Date(data);
+    dataFim.setHours(23, 59, 59, 999);
+
+    // Deletar títulos criados nessa data
+    const resultTitulos = await Titulo.deleteMany({
+      createdAt: { $gte: dataInicio, $lte: dataFim }
+    });
+
+    // Deletar clientes criados nessa data que não têm mais títulos
+    const clientesComTitulos = await Titulo.distinct("clienteId");
+    const resultClientes = await Cliente.deleteMany({
+      createdAt: { $gte: dataInicio, $lte: dataFim },
+      _id: { $nin: clientesComTitulos }
+    });
+
+    console.log(`[DELETE /api/importar] Removidos ${resultTitulos.deletedCount} títulos e ${resultClientes.deletedCount} clientes da data ${data}`);
+
+    return NextResponse.json({
+      ok: true,
+      deletedTitulos: resultTitulos.deletedCount,
+      deletedClientes: resultClientes.deletedCount,
+    });
+
+  } catch (err) {
+    console.error("[DELETE /api/importar] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao limpar dados";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

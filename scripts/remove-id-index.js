@@ -5,7 +5,13 @@
 
 const mongoose = require('mongoose');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://forcaagricolasistemas_db_user:e1b9tlQQf6bV3LjO@cluster0.u00qkoe.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error('[Migration] ❌ MONGODB_URI não definida!');
+  console.error('[Migration] Execute: set MONGODB_URI=sua_string_de_conexao');
+  process.exit(1);
+}
 
 async function removeIndex() {
   try {
