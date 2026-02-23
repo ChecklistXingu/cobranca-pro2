@@ -19,19 +19,24 @@ export async function GET(req: NextRequest) {
       .lean();
 
     // Transformar para formato esperado pelo frontend
-    const disparosTransformados = disparos.map((d: any) => ({
-      id: String(d._id),
-      clienteId: typeof d.clienteId === 'object' ? String(d.clienteId._id) : String(d.clienteId),
-      clienteNome: typeof d.clienteId === 'object' ? d.clienteId.nome : '',
-      clienteTelefone: typeof d.clienteId === 'object' ? d.clienteId.telefone : '',
-      tituloId: typeof d.tituloId === 'object' ? String(d.tituloId._id) : String(d.tituloId),
-      numeroNF: typeof d.tituloId === 'object' ? d.tituloId.numeroNF : '',
-      totalTitulo: typeof d.tituloId === 'object' ? Number(d.tituloId.total || 0) : 0,
+    const disparosTransformados = disparos.map((d: any) => {
+      const clienteObj = d.clienteId && typeof d.clienteId === "object" ? d.clienteId : null;
+      const tituloObj = d.tituloId && typeof d.tituloId === "object" ? d.tituloId : null;
+
+      return {
+        id: String(d._id),
+        clienteId: clienteObj ? String(clienteObj._id) : (d.clienteId ? String(d.clienteId) : ""),
+        clienteNome: clienteObj?.nome ?? "",
+        clienteTelefone: clienteObj?.telefone ?? "",
+        tituloId: tituloObj ? String(tituloObj._id) : (d.tituloId ? String(d.tituloId) : ""),
+        numeroNF: tituloObj?.numeroNF ?? "",
+        totalTitulo: tituloObj ? Number(tituloObj.total || 0) : 0,
       status: d.status,
       template: d.template,
       resposta: d.resposta || '',
       data: d.createdAt,
-    }));
+      };
+    });
 
     return NextResponse.json(disparosTransformados);
   } catch (err) {
