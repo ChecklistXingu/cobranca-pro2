@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
         clienteId: mongoClienteId,
         numeroNF: t.numeroNF,
         numeroTitulo: t.numeroTitulo,
+        vencimento: t.vencimento || null,
         valorPrincipal: t.valorPrincipal,
         juros: t.juros,
         total: t.total,
