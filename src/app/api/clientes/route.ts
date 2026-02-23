@@ -14,7 +14,15 @@ export async function GET(req: NextRequest) {
       : {};
 
     const clientes = await Cliente.find(query).sort({ nome: 1 }).lean();
-    return NextResponse.json(clientes);
+    
+    // Transformar _id para id
+    const clientesTransformados = clientes.map((c: any) => ({
+      ...c,
+      id: String(c._id),
+      _id: undefined,
+    }));
+    
+    return NextResponse.json(clientesTransformados);
   } catch (err) {
     console.error("[GET /api/clientes] Erro:", err);
     const message = err instanceof Error ? err.message : "Erro ao buscar clientes";

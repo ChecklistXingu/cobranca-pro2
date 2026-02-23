@@ -29,7 +29,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(titulos);
+    // Transformar _id para id e clienteId._id para clienteId
+    const titulosTransformados = titulos.map((t: any) => ({
+      ...t,
+      id: String(t._id),
+      clienteId: typeof t.clienteId === 'object' ? String(t.clienteId._id) : String(t.clienteId),
+      _id: undefined,
+    }));
+
+    return NextResponse.json(titulosTransformados);
   } catch (err) {
     console.error("[GET /api/titulos] Erro:", err);
     const message = err instanceof Error ? err.message : "Erro ao buscar títulos";
