@@ -2,6 +2,7 @@ import mongoose, { Schema, model, models } from "mongoose";
 
 // ─── CLIENTE ────────────────────────────────────────────────────────────────
 const ClienteSchema = new Schema({
+  id: { type: String, unique: true, sparse: true }, // ID do frontend (opcional)
   nome: { type: String, required: true },
   telefone: { type: String },
   documento: { type: String },
