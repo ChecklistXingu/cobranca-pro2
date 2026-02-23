@@ -27,7 +27,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(disparos);
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao buscar disparos" }, { status: 500 });
+    console.error("[GET /api/disparos] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao buscar disparos";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -104,6 +106,8 @@ export async function POST(req: NextRequest) {
     }, { status: resultado.success ? 200 : 422 });
 
   } catch (err) {
-    return NextResponse.json({ error: "Erro interno ao disparar mensagem" }, { status: 500 });
+    console.error("[POST /api/disparos] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro interno ao disparar mensagem";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

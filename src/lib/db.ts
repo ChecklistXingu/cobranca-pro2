@@ -17,10 +17,16 @@ let cached = global._mongooseConn;
 export async function connectDB(): Promise<typeof mongoose> {
   if (cached) return cached;
 
-  cached = await mongoose.connect(MONGODB_URI, {
-    bufferCommands: false,
-  });
-
-  global._mongooseConn = cached;
-  return cached;
+  try {
+    console.log("[MongoDB] Conectando ao banco de dados...");
+    cached = await mongoose.connect(MONGODB_URI, {
+      bufferCommands: false,
+    });
+    console.log("[MongoDB] Conexão estabelecida com sucesso!");
+    global._mongooseConn = cached;
+    return cached;
+  } catch (error) {
+    console.error("[MongoDB] Erro ao conectar:", error);
+    throw error;
+  }
 }

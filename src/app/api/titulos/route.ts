@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(titulos);
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao buscar títulos" }, { status: 500 });
+    console.error("[GET /api/titulos] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao buscar títulos";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -52,6 +54,8 @@ export async function POST(req: NextRequest) {
     const titulo = await Titulo.create({ ...body, chaveMatch });
     return NextResponse.json(titulo, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao criar título" }, { status: 500 });
+    console.error("[POST /api/titulos] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao criar título";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

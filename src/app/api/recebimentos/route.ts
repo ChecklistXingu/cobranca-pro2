@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(recebimentos);
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao buscar recebimentos" }, { status: 500 });
+    console.error("[GET /api/recebimentos] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao buscar recebimentos";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -55,6 +57,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(recebimento, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao lançar recebimento" }, { status: 500 });
+    console.error("[POST /api/recebimentos] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao lançar recebimento";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
     const clientes = await Cliente.find(query).sort({ nome: 1 }).lean();
     return NextResponse.json(clientes);
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao buscar clientes" }, { status: 500 });
+    console.error("[GET /api/clientes] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao buscar clientes";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -33,6 +35,8 @@ export async function POST(req: NextRequest) {
     const cliente = await Cliente.create(body);
     return NextResponse.json(cliente, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao criar cliente" }, { status: 500 });
+    console.error("[POST /api/clientes] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao criar cliente";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

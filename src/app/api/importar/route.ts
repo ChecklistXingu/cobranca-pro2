@@ -67,7 +67,8 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (err) {
-    console.error("[/api/importar]", err);
-    return NextResponse.json({ error: "Erro ao importar dados" }, { status: 500 });
+    console.error("[POST /api/importar] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao importar dados";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -23,7 +23,9 @@ export async function PATCH(
 
     return NextResponse.json(titulo);
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao atualizar título" }, { status: 500 });
+    console.error("[PATCH /api/titulos/[id]] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao atualizar título";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -37,6 +39,8 @@ export async function DELETE(
     await Titulo.findByIdAndDelete(params.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao deletar título" }, { status: 500 });
+    console.error("[DELETE /api/titulos/[id]] Erro:", err);
+    const message = err instanceof Error ? err.message : "Erro ao deletar título";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
