@@ -18,7 +18,22 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json(disparos);
+    // Transformar para formato esperado pelo frontend
+    const disparosTransformados = disparos.map((d: any) => ({
+      id: String(d._id),
+      clienteId: typeof d.clienteId === 'object' ? String(d.clienteId._id) : String(d.clienteId),
+      clienteNome: typeof d.clienteId === 'object' ? d.clienteId.nome : '',
+      clienteTelefone: typeof d.clienteId === 'object' ? d.clienteId.telefone : '',
+      tituloId: typeof d.tituloId === 'object' ? String(d.tituloId._id) : String(d.tituloId),
+      numeroNF: typeof d.tituloId === 'object' ? d.tituloId.numeroNF : '',
+      totalTitulo: typeof d.tituloId === 'object' ? Number(d.tituloId.total || 0) : 0,
+      status: d.status,
+      template: d.template,
+      resposta: d.resposta || '',
+      data: d.createdAt,
+    }));
+
+    return NextResponse.json(disparosTransformados);
   } catch (err) {
     console.error("[GET /api/disparos] Erro:", err);
     const message = err instanceof Error ? err.message : "Erro ao buscar disparos";
