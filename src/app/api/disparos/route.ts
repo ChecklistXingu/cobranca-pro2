@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Disparo, Titulo, Cliente } from "@/lib/models";
-import { enviarMensagem, aplicarTemplate } from "@/lib/zapi";
-
-// Templates padrão (podem ser personalizados no futuro via banco)
-const TEMPLATES: Record<string, string> = {
-  "1º Aviso": "Olá {cliente}! Identificamos que o título {numeroNF} está prestes a vencer. Valor total: {total}. Entre em contato para evitar juros. 🙏",
-  "Vencido": "Olá {cliente}. Seu título {numeroNF} está vencido há {diasAtraso} dias. Valor total: {total}. Por favor, regularize o quanto antes! ⚠️",
-  "2º Aviso": "{cliente}, ainda não identificamos o pagamento do título {numeroNF}. Valor: {total}. Entre em contato urgente. 📞",
-  "Pós-vencimento": "Aviso final: {cliente}, o título {numeroNF} está em atraso há {diasAtraso} dias. Total: {total}. Regularize para evitar protesto. ❌",
-};
+import { enviarMensagem } from "@/lib/zapi";
+import { buildMensagemCobranca } from "@/lib/mensagem";
 
 // GET /api/disparos  ← Lista todos os disparos
 export async function GET(req: NextRequest) {
@@ -62,14 +55,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Cliente sem telefone cadastrado" }, { status: 400 });
     }
 
-    // Monta mensagem
-    const templateTexto = TEMPLATES[templateNome] || TEMPLATES["Vencido"];
-    const mensagem = aplicarTemplate(templateTexto, {
-      cliente: cliente.nome,
-      numeroNF: titulo.numeroNF,
-      total: Number(titulo.total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      diasAtraso: titulo.diasAtraso,
-    });
+    // Monta mensagem usando o mesmo template do frontend
+    const mensagem = buildMensagemCobranca(
+      [{
+        numeroNF: titulo.numeroNF,
+        numeroTitulo: titulo.numeroTitulo,
+        vencimento: titulo.vencimento,
+        valorPrincipal: titulo.valorPrincipal,
+        juros: titulo.juros,
+        total: titulo.total,
+        diasAtraso: titulo.diasAtraso,
+      }],
+      cliente.nome,
+      templateNome
+    );
 
     // Cria registro PENDENTE no banco
     const disparo = await Disparo.create({
