@@ -34,6 +34,10 @@ export async function GET(req: NextRequest) {
       ...t,
       id: String(t._id),
       clienteId: typeof t.clienteId === 'object' ? String(t.clienteId._id) : String(t.clienteId),
+      valorPrincipal: Number(t.valorPrincipal || 0),
+      juros: Number(t.juros || 0),
+      total: Number(t.total || 0),
+      diasAtraso: Number(t.diasAtraso || 0),
       _id: undefined,
     }));
 
