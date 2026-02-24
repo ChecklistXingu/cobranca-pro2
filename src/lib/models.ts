@@ -48,7 +48,12 @@ export const Recebimento = models.Recebimento || model("Recebimento", Recebiment
 // ─── DISPARO ─────────────────────────────────────────────────────────────────
 const DisparoSchema = new Schema({
   clienteId: { type: Schema.Types.ObjectId, ref: "Cliente", required: true },
-  tituloId: { type: Schema.Types.ObjectId, ref: "Titulo", required: true },
+  tituloId: { type: Schema.Types.ObjectId, ref: "Titulo" },
+  tipo: {
+    type: String,
+    enum: ["COBRANCA_ATRASO", "LEMBRETE_VENCIMENTO", "FATURAMENTO_INSTANTANEO", "FATURAMENTO_LEMBRETE"],
+    default: "COBRANCA_ATRASO",
+  },
   status: {
     type: String,
     enum: ["ENVIADO", "FALHOU", "PENDENTE"],
@@ -60,3 +65,22 @@ const DisparoSchema = new Schema({
 }, { timestamps: true });
 
 export const Disparo = models.Disparo || model("Disparo", DisparoSchema);
+
+// ─── FATURAMENTO ─────────────────────────────────────────────────────────────
+const FaturamentoSchema = new Schema({
+  clienteId: { type: Schema.Types.ObjectId, ref: "Cliente" },
+  nome: { type: String, required: true },
+  telefone: { type: String, required: true },
+  dataFaturamento: { type: Date, required: true },
+  dataVencimento: { type: Date, required: true },
+  valor: { type: Number, required: true },
+  agendarEmDias: { type: Number, default: 0 },
+  lembreteAgendadoPara: { type: Date },
+  statusLembrete: {
+    type: String,
+    enum: ["PENDENTE", "ENVIADO", "FALHOU", "DESATIVADO"],
+    default: "DESATIVADO",
+  },
+}, { timestamps: true });
+
+export const Faturamento = models.Faturamento || model("Faturamento", FaturamentoSchema);
