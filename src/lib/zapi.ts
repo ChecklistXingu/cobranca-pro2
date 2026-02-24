@@ -84,3 +84,57 @@ export function aplicarTemplate(
     .replace(/\{diasAtraso\}/g, String(vars.diasAtraso))
     .replace(/\{vencimento\}/g, vars.vencimento ?? "—");
 }
+
+/**
+ * Envia documento (PDF, etc.) via WhatsApp
+ * Usa o endpoint /send-document/{extension}
+ */
+export async function enviarDocumento(
+  telefone: string,
+  documento: string,
+  options?: {
+    fileName?: string;
+    caption?: string;
+    extension?: string; // ex: "pdf"
+  }
+): Promise<ZApiSendResult> {
+  const phone = telefone.replace(/[\s\+\-\(\)]/g, "");
+  const extension = (options?.extension || "pdf").replace(/^\./, "");
+
+  try {
+    const res = await fetch(`${ZAPI_BASE}/send-document/${extension}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(ZAPI_CLIENT_TOKEN ? { "client-token": ZAPI_CLIENT_TOKEN } : {}),
+      },
+      body: JSON.stringify({
+        phone,
+        document: documento,
+        ...(options?.fileName ? { fileName: options.fileName } : {}),
+        ...(options?.caption ? { caption: options.caption } : {}),
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return {
+        success: false,
+        error: data?.error || data?.message || `HTTP ${res.status}`,
+        raw: data,
+      };
+    }
+
+    return {
+      success: true,
+      zaapId: data?.zaapId,
+      messageId: data?.messageId,
+      raw: data,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+}
+

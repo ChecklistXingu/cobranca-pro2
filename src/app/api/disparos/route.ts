@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { Disparo, Titulo, Cliente } from "@/lib/models";
-import { enviarMensagem } from "@/lib/zapi";
+import { enviarMensagem, enviarDocumento } from "@/lib/zapi";
 import { buildMensagemCobranca } from "@/lib/mensagem";
 
 // GET /api/disparos  ← Lista todos os disparos
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json();
-    const { tituloId, template: templateNome } = body;
+    const { tituloId, template: templateNome, anexos } = body;
 
     if (!tituloId || !templateNome) {
       return NextResponse.json(
@@ -99,30 +99,71 @@ export async function POST(req: NextRequest) {
       mensagemEnviada: mensagem,
     });
 
-    // Envia via Z-API
-    const resultado = await enviarMensagem(cliente.telefone, mensagem);
+    // Envia texto via Z-API
+    const resultadoTexto = await enviarMensagem(cliente.telefone, mensagem);
+
+    // Envia anexos (documentos), se houver
+    const anexosArray: Array<{
+      document: string;
+      fileName?: string;
+      caption?: string;
+      extension?: string;
+    }> = Array.isArray(anexos) ? anexos.slice(0, 5) : [];
+
+    const resultadosDocs = [];
+    if (resultadoTexto.success && anexosArray.length > 0) {
+      for (let i = 0; i < anexosArray.length; i++) {
+        const anexo = anexosArray[i];
+        const ext =
+          (anexo.extension || "pdf").toLowerCase().replace(/^\./, "") || "pdf";
+        const r = await enviarDocumento(cliente.telefone, anexo.document, {
+          fileName:
+            anexo.fileName ||
+            `anexo-${i + 1}.${ext}`,
+          caption: anexo.caption,
+          extension: ext,
+        });
+        resultadosDocs.push(r);
+      }
+    }
+
+    const todosDocsOk =
+      resultadosDocs.length === 0 ||
+      resultadosDocs.every((r) => r.success);
+    const sucessoGeral = resultadoTexto.success && todosDocsOk;
 
     // Atualiza status do disparo com resultado
-    const novoStatus = resultado.success ? "ENVIADO" : "FALHOU";
+    const novoStatus = sucessoGeral ? "ENVIADO" : "FALHOU";
     await Disparo.findByIdAndUpdate(disparo._id, {
       status: novoStatus,
-      resposta: resultado.success
-        ? `zaapId: ${resultado.zaapId}`
-        : resultado.error,
+      resposta: sucessoGeral
+        ? `texto OK (zaapId: ${resultadoTexto.zaapId})${
+            resultadosDocs.length
+              ? `; docs: ${resultadosDocs.filter((r) => r.success).length}/${
+                  resultadosDocs.length
+                } OK`
+              : ""
+          }`
+        : resultadoTexto.error ||
+          resultadosDocs.find((r) => !r.success)?.error ||
+          "Falha ao enviar mensagem/documentos",
     });
 
     // Atualiza data do último disparo no título
-    if (resultado.success) {
+    if (sucessoGeral) {
       await Titulo.findByIdAndUpdate(tituloId, { ultimoDisparo: new Date() });
     }
 
     return NextResponse.json({
-      ok: resultado.success,
+      ok: sucessoGeral,
       status: novoStatus,
       disparo: disparo._id,
-      zaapId: resultado.zaapId,
-      error: resultado.error,
-    }, { status: resultado.success ? 200 : 422 });
+      zaapId: resultadoTexto.zaapId,
+      error: sucessoGeral
+        ? undefined
+        : resultadoTexto.error ||
+          resultadosDocs.find((r) => !r.success)?.error,
+    }, { status: sucessoGeral ? 200 : 422 });
 
   } catch (err) {
     console.error("[POST /api/disparos] Erro:", err);
