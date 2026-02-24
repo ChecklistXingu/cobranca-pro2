@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     const clienteExistente = await Cliente.findOne({
       nome,
       telefone,
-    }).lean();
+    }).lean<{ _id: string } | null>();
 
     const clienteId = clienteExistente?._id;
 
