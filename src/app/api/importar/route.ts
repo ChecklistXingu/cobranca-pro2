@@ -6,7 +6,7 @@ import { Cliente, Titulo } from "@/lib/models";
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-    const { clientes: clientesPayload, titulos: titulosPayload } = await req.json();
+    const { clientes: clientesPayload, titulos: titulosPayload, dataReferencia } = await req.json();
 
     if (!Array.isArray(clientesPayload) || !Array.isArray(titulosPayload)) {
       return NextResponse.json({ error: "Payload inválido: esperado { clientes[], titulos[] }" }, { status: 400 });
@@ -45,6 +45,13 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      const referenciaDate = t.dataReferenciaImportacao
+        ? new Date(t.dataReferenciaImportacao)
+        : dataReferencia
+        ? new Date(dataReferencia)
+        : undefined;
+      const tipoImportacao = t.tipoImportacao ?? (t.diasAtraso > 0 ? "TITULO" : "LEMBRETE");
+
       const novo = await Titulo.create({
         clienteId: mongoClienteId,
         numeroNF: t.numeroNF,
@@ -56,6 +63,8 @@ export async function POST(req: NextRequest) {
         diasAtraso: t.diasAtraso,
         status: t.status,
         chaveMatch: t.chaveMatch,
+        tipoImportacao,
+        dataReferenciaImportacao: referenciaDate,
       });
       titulosSalvos.push(novo);
     }

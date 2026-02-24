@@ -19,6 +19,12 @@ const TituloSchema = new Schema({
   total: { type: Number, required: true },
   diasAtraso: { type: Number, default: 0 },
   vencimento: { type: Date },
+  tipoImportacao: {
+    type: String,
+    enum: ["TITULO", "LEMBRETE"],
+    default: "TITULO",
+  },
+  dataReferenciaImportacao: { type: Date },
   status: {
     type: String,
     enum: ["ABERTO", "VENCIDO", "RECEBIDO", "NEGOCIADO", "CANCELADO"],
