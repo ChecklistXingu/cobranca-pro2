@@ -34,6 +34,13 @@ const TituloSchema = new Schema({
   ultimoDisparo: { type: Date },
 }, { timestamps: true });
 
+// Indexes to speed up dashboard filters/searches
+TituloSchema.index({ status: 1, clienteId: 1 });
+TituloSchema.index({ dataReferenciaImportacao: -1 });
+TituloSchema.index({ clienteId: 1, dataReferenciaImportacao: -1 });
+TituloSchema.index({ numeroNF: 1 });
+TituloSchema.index({ numeroTitulo: 1 });
+
 export const Titulo = models.Titulo || model("Titulo", TituloSchema);
 
 // ─── RECEBIMENTO ─────────────────────────────────────────────────────────────

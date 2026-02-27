@@ -10,30 +10,109 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const clienteId = searchParams.get("clienteId");
     const search = searchParams.get("search");
+    const tipo = searchParams.get("tipo");
+    const dataRefInicio = searchParams.get("dataRefInicio");
+    const dataRefFim = searchParams.get("dataRefFim");
+    const view = searchParams.get("view") ?? "list";
+    const paginated = searchParams.has("paginated");
+    const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+    const rawPageSize = Number(searchParams.get("pageSize") ?? "200");
+    const pageSize = Math.min(500, Math.max(10, Number.isNaN(rawPageSize) ? 200 : rawPageSize));
+    const skip = (page - 1) * pageSize;
 
     const query: Record<string, unknown> = {};
     if (status && status !== "TODOS") query.status = status;
     if (clienteId) query.clienteId = clienteId;
+    if (tipo && tipo !== "TODOS") query.tipoImportacao = tipo;
 
-    let titulos = await Titulo.find(query)
-      .populate("clienteId", "nome telefone documento")
+    if (dataRefInicio || dataRefFim) {
+      const range: Record<string, Date> = {};
+      if (dataRefInicio) {
+        const start = new Date(dataRefInicio);
+        if (!Number.isNaN(start.getTime())) {
+          start.setHours(0, 0, 0, 0);
+          range.$gte = start;
+        }
+      }
+      if (dataRefFim) {
+        const end = new Date(dataRefFim);
+        if (!Number.isNaN(end.getTime())) {
+          end.setHours(23, 59, 59, 999);
+          range.$lte = end;
+        }
+      }
+      if (Object.keys(range).length) {
+        query.dataReferenciaImportacao = range;
+      }
+    }
+
+    if (search) {
+      const regex = new RegExp(search, "i");
+      query.$or = [
+        { numeroNF: regex },
+        { numeroTitulo: regex },
+      ];
+    }
+
+    const projections: Record<string, number> | undefined = view === "full" ? undefined : {
+      clienteId: 1,
+      numeroNF: 1,
+      numeroTitulo: 1,
+      valorPrincipal: 1,
+      juros: 1,
+      total: 1,
+      diasAtraso: 1,
+      status: 1,
+      chaveMatch: 1,
+      ultimoDisparo: 1,
+      tipoImportacao: 1,
+      dataReferenciaImportacao: 1,
+      vencimento: 1,
+      createdAt: 1,
+    };
+
+    if (paginated) {
+      const [titulos, total] = await Promise.all([
+        Titulo.find(query, projections)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(pageSize)
+          .lean(),
+        Titulo.countDocuments(query),
+      ]);
+
+      const titulosTransformados = titulos.map((t: any) => ({
+        ...t,
+        id: String(t._id),
+        clienteId: String(t.clienteId),
+        valorPrincipal: Number(t.valorPrincipal || 0),
+        juros: Number(t.juros || 0),
+        total: Number(t.total || 0),
+        diasAtraso: Number(t.diasAtraso || 0),
+        _id: undefined,
+      }));
+
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      return NextResponse.json({
+        items: titulosTransformados,
+        meta: {
+          total,
+          page,
+          pageSize,
+          totalPages,
+          hasMore: page < totalPages,
+        },
+      });
+    }
+
+    const titulos = await Titulo.find(query, projections)
       .sort({ createdAt: -1 })
       .lean();
 
-    // Filtro por busca (nome do cliente ou NF)
-    if (search) {
-      titulos = titulos.filter((t: any) =>
-        t.numeroNF?.includes(search) ||
-        t.numeroTitulo?.includes(search) ||
-        (t.clienteId as any)?.nome?.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    // Transformar _id para id e clienteId._id para clienteId
     const titulosTransformados = titulos.map((t: any) => ({
       ...t,
       id: String(t._id),
-      clienteId: typeof t.clienteId === 'object' ? String(t.clienteId._id) : String(t.clienteId),
+      clienteId: String(t.clienteId),
       valorPrincipal: Number(t.valorPrincipal || 0),
       juros: Number(t.juros || 0),
       total: Number(t.total || 0),
