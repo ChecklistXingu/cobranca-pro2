@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import { Disparo, Titulo, Cliente } from "@/lib/models";
 import { enviarMensagem, enviarDocumento } from "@/lib/zapi";
 import { buildMensagemCobranca } from "@/lib/mensagem";
+import { Types } from "mongoose";
 
 // GET /api/disparos  ← Lista todos os disparos
 export async function GET(req: NextRequest) {
@@ -51,17 +52,30 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json();
-    const { tituloId, template: templateNome, anexos } = body;
+    const { tituloId, chaveMatch, template: templateNome, anexos } = body;
 
-    if (!tituloId || !templateNome) {
+    if ((!tituloId && !chaveMatch) || !templateNome) {
       return NextResponse.json(
-        { error: "tituloId e template são obrigatórios" },
+        { error: "tituloId (ou chaveMatch) e template são obrigatórios" },
         { status: 400 }
       );
     }
 
     // Busca título e cliente
-    const titulo = await Titulo.findById(tituloId).lean() as any;
+    let titulo: any = null;
+
+    if (tituloId && Types.ObjectId.isValid(String(tituloId))) {
+      titulo = await Titulo.findById(tituloId).lean() as any;
+    }
+
+    if (!titulo && chaveMatch) {
+      titulo = await Titulo.findOne({ chaveMatch: String(chaveMatch) }).lean() as any;
+    }
+
+    if (!titulo && tituloId && !Types.ObjectId.isValid(String(tituloId))) {
+      titulo = await Titulo.findOne({ chaveMatch: String(tituloId) }).lean() as any;
+    }
+
     if (!titulo) {
       return NextResponse.json({ error: "Título não encontrado" }, { status: 404 });
     }
@@ -151,7 +165,7 @@ export async function POST(req: NextRequest) {
 
     // Atualiza data do último disparo no título
     if (sucessoGeral) {
-      await Titulo.findByIdAndUpdate(tituloId, { ultimoDisparo: new Date() });
+      await Titulo.findByIdAndUpdate(titulo._id, { ultimoDisparo: new Date() });
     }
 
     return NextResponse.json({
