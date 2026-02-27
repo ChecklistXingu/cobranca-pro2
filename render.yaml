@@ -1,10 +1,18 @@
 services:
   - type: web
     name: cobranca-pro-backend
-    env: node
-    nodeVersion: "20.11.1"
-    buildCommand: "npm install && npm run build"
-    startCommand: "npm start"
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: NODE_VERSION
         value: "20.11.1"
+      - key: MONGODB_URI
+        sync: false
+      - key: ZAPI_INSTANCE_ID
+        sync: false
+      - key: ZAPI_TOKEN
+        sync: false
+      - key: ZAPI_CLIENT_TOKEN
+        sync: false
+      - key: NEXTAUTH_URL
+        sync: false
