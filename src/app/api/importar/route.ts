@@ -39,7 +39,13 @@ export async function POST(req: NextRequest) {
       const mongoClienteId = clienteIdMap.get(t.clienteId);
       if (!mongoClienteId) continue;
 
-      const existing = await Titulo.findOne({ chaveMatch: t.chaveMatch });
+      const existing = await Titulo.findOne({
+        clienteId: mongoClienteId,
+        numeroNF: t.numeroNF,
+        numeroTitulo: t.numeroTitulo ?? null,
+        vencimento: t.vencimento ?? null,
+        total: Number(t.total || 0),
+      });
       if (existing) {
         duplicados++;
         continue;

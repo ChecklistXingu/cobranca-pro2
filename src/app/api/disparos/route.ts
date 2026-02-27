@@ -11,8 +11,31 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
+    const inicio = searchParams.get("inicio");
+    const fim = searchParams.get("fim");
 
-    const query = status ? { status } : {};
+    const query: Record<string, unknown> = status ? { status } : {};
+
+    if (inicio || fim) {
+      const createdAt: Record<string, Date> = {};
+
+      if (inicio) {
+        const dInicio = new Date(inicio);
+        dInicio.setHours(0, 0, 0, 0);
+        if (!Number.isNaN(dInicio.getTime())) createdAt.$gte = dInicio;
+      }
+
+      if (fim) {
+        const dFim = new Date(fim);
+        dFim.setHours(23, 59, 59, 999);
+        if (!Number.isNaN(dFim.getTime())) createdAt.$lte = dFim;
+      }
+
+      if (Object.keys(createdAt).length) {
+        query.createdAt = createdAt;
+      }
+    }
+
     const disparos = await Disparo.find(query)
       .populate("clienteId", "nome telefone")
       .populate("tituloId", "numeroNF total diasAtraso")
